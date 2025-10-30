@@ -59,6 +59,29 @@ Tab Keeper is an intuitive Chrome extension crafted to redefine the way users sa
 
 ## Changelog
 
+Added (jrramon)Added (jrramon)Added (jrramon)
+
+🔒 Security Changes:
+
+  - Removed Firebase (10+ files modified)
+  - All data stays local in localStorage
+  - No cloud sync, no external database
+  - Stubbed all Firebase authentication
+
+  ✨ New Features:
+
+  - Focus mode button in left panel session list
+  - Focus mode button in right panel session details
+  - Opens session + closes all unrelated windows
+
+  📦 Modified Files: 14 files total
+
+  - Dependencies: package.json, package-lock.json
+  - Core logic: 5 Redux files
+  - UI components: 6 component files
+  - Config: 2 config files
+
+
 ### v.1.3.1 (Latest)
 
 #### Improvements
