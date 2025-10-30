@@ -83,11 +83,25 @@ function App() {
   const containerStyle = css`
     background-color: ${COLORS.PRIMARY_COLOR};
     width: ${APP_WIDTH};
+    position: relative;
+  `;
+
+  const buildTimeStyle = css`
+    position: absolute;
+    bottom: 2px;
+    right: 5px;
+    font-size: 9px;
+    color: ${COLORS.TEXT_COLOR};
+    opacity: 0.4;
+    user-select: none;
+    pointer-events: none;
+    font-family: monospace;
   `;
 
   return (
     <div css={containerStyle}>
       <MainContainer />
+      <div css={buildTimeStyle}>{__BUILD_TIME__}</div>
     </div>
   );
 }

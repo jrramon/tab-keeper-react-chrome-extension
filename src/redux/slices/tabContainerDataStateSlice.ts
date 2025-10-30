@@ -99,8 +99,17 @@ export const initialState: TabMasterContainer = {
   tabGroups: [],
 };
 
+const tabURLMap: {
+  [key: number]: { url: string; title: string; favicon: string };
+} = {};
+
+let isListenerSetup = false;
+
 function setupTabActivationListener(isLazyLoad: boolean) {
-  if (!isLazyLoad) return;
+  if (!isLazyLoad || isListenerSetup) return;
+
+  isListenerSetup = true;
+
   chrome.tabs.onActivated.addListener(({ tabId }) => {
     const tabData = tabURLMap[tabId];
     if (tabData) {
@@ -109,10 +118,6 @@ function setupTabActivationListener(isLazyLoad: boolean) {
     }
   });
 }
-
-const tabURLMap: {
-  [key: number]: { url: string; title: string; favicon: string };
-} = {};
 
 function createWindowWithRetries(
   tabs: tabData[],
@@ -131,7 +136,7 @@ function createWindowWithRetries(
 
   chrome.windows.create(
     {
-      url: tabs[0].url,
+      url: decodeDataUrl(tabs[0].url),
       focused: isFirstWindow,
       height: height || DEFAULT_WINDOW_HEIGHT,
       width: width || DEFAULT_WINDOW_WIDTH,
