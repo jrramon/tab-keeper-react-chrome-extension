@@ -1,15 +1,9 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { RootState } from '../store';
-import { setPresentStartup } from './undoRedoSlice';
 import { selectCategory, SettingsCategory } from './settingsCategoryStateSlice';
-import { replaceState, TabMasterContainer } from './tabContainerDataStateSlice';
+import { TabMasterContainer } from './tabContainerDataStateSlice';
 import {
-  loadFromFirestore,
-  saveToFirestore,
-} from '../../utils/functions/external';
-import {
-  loadFromLocalStorage,
   saveToLocalStorage,
 } from '../../utils/functions/local';
 
@@ -52,116 +46,33 @@ export const initialState: Global = {
   tabDataCloud: null,
 };
 
-// save data to Firestore if dirty, saves latest to localStorage at the end
-export const saveToFirestoreIfDirty = createAsyncThunk(
-  'global/saveToFirestoreIfDirty',
+// Save data to localStorage only (Firebase sync removed)
+export const saveToLocalStorageIfDirty = createAsyncThunk(
+  'global/saveToLocalStorageIfDirty',
   async (_, thunkAPI) => {
     const state = thunkAPI.getState() as RootState;
 
     try {
       if (state.globalState.isDirty) {
-        await saveToFirestore(
-          state.globalState.userId!,
-          state.tabContainerDataState
-        );
-        // Save to localStorage after successful Firestore update
+        // Save to localStorage only
         saveToLocalStorage('tabContainerData', state.tabContainerDataState);
         thunkAPI.dispatch(setIsNotDirty());
       }
     } catch (error: any) {
-      console.warn('Error updating Firestore: ', error.message);
+      console.warn('Error saving to localStorage: ', error.message);
     }
   }
 );
 
-// syncs data with Firestore
+// Stub for backward compatibility - does nothing now
+export const saveToFirestoreIfDirty = saveToLocalStorageIfDirty;
+
+// Stub for backward compatibility - does nothing now
 export const syncStateWithFirestore = createAsyncThunk(
   'global/syncStateWithFirestore',
-  async (_, thunkAPI) => {
-    const state = thunkAPI.getState() as RootState;
-
-    // load from Firestore
-    const tabDataFromCloud: TabMasterContainer | undefined =
-      await loadFromFirestore(state.globalState.userId!, thunkAPI);
-
-    // log data loaded from localStorage
-    const tabDataFromLocalStorage: TabMasterContainer =
-      loadFromLocalStorage('tabContainerData');
-
-    if (tabDataFromCloud && tabDataFromLocalStorage) {
-      // data present on both local and cloud, possiblity of conflict
-      const cloudTimestamp = tabDataFromCloud.lastModified;
-      const localTimestamp = tabDataFromLocalStorage.lastModified;
-
-      if (localTimestamp !== cloudTimestamp) {
-        if (localTimestamp > cloudTimestamp) {
-          // Local is the latest, write this to cloud
-          thunkAPI.dispatch(replaceState(tabDataFromLocalStorage));
-          thunkAPI.dispatch(setIsDirty());
-          thunkAPI.dispatch(saveToFirestoreIfDirty());
-          if (!state.globalState.hasSyncedBefore) {
-            // reset presentState in the undoRedoState
-            thunkAPI.dispatch(
-              setPresentStartup({
-                tabContainerDataState: tabDataFromLocalStorage,
-              })
-            );
-          }
-          thunkAPI.dispatch(setHasSyncedBefore());
-        } else {
-          // cloud is latest, let user decide.
-          if (!state.globalState.isDirty) {
-            // local is not dirty, so might want to overwrite it with cloud data. Still let user decide.
-          }
-          // data conflict!
-          thunkAPI.dispatch(
-            openConflictModal({
-              tabDataLocal: tabDataFromLocalStorage,
-              tabDataCloud: tabDataFromCloud,
-            })
-          );
-        }
-      } else {
-        // No data conflict
-        thunkAPI.dispatch(replaceState(tabDataFromLocalStorage));
-        thunkAPI.dispatch(saveToFirestoreIfDirty());
-        thunkAPI.dispatch(setHasSyncedBefore());
-      }
-    } else if (tabDataFromCloud) {
-      // newly installed returning user - data present only on cloud
-      thunkAPI.dispatch(replaceState(tabDataFromCloud!));
-      thunkAPI.dispatch(setIsNotDirty());
-      thunkAPI.dispatch(setSyncStatus(`success`));
-      if (!state.globalState.hasSyncedBefore) {
-        // reset presentState in the undoRedoState
-        thunkAPI.dispatch(
-          setPresentStartup({
-            tabContainerDataState: tabDataFromCloud!,
-          })
-        );
-      }
-      thunkAPI.dispatch(setHasSyncedBefore());
-    } else if (tabDataFromLocalStorage) {
-      // data only on localStorage
-      // save back to Firestore
-      thunkAPI.dispatch(replaceState(tabDataFromLocalStorage));
-      thunkAPI.dispatch(setIsDirty());
-      thunkAPI.dispatch(saveToFirestoreIfDirty());
-      if (!state.globalState.hasSyncedBefore) {
-        // reset presentState in the undoRedoState
-        thunkAPI.dispatch(
-          setPresentStartup({
-            tabContainerDataState: tabDataFromLocalStorage,
-          })
-        );
-      }
-      thunkAPI.dispatch(setHasSyncedBefore());
-    } else {
-      // new user - hey there!
-      thunkAPI.dispatch(setIsDirty());
-      thunkAPI.dispatch(saveToFirestoreIfDirty());
-      thunkAPI.dispatch(setHasSyncedBefore());
-    }
+  async () => {
+    // No-op: Firebase sync removed, all data stays local
+    console.log('Firebase sync has been removed - using local storage only');
   }
 );
 
@@ -292,17 +203,17 @@ export const globalStateSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(saveToFirestoreIfDirty.pending, (state) => {
+      .addCase(saveToLocalStorageIfDirty.pending, (state) => {
         state.syncStatus = 'loading';
       })
-      .addCase(saveToFirestoreIfDirty.fulfilled, (state) => {
-        if (state.isSignedIn && !state.isDirty) {
+      .addCase(saveToLocalStorageIfDirty.fulfilled, (state) => {
+        if (!state.isDirty) {
           state.syncStatus = 'success';
         } else {
           state.syncStatus = 'idle';
         }
       })
-      .addCase(saveToFirestoreIfDirty.rejected, (state) => {
+      .addCase(saveToLocalStorageIfDirty.rejected, (state) => {
         state.syncStatus = 'error';
       })
       .addCase(openSettingsPage.fulfilled, (state) => {

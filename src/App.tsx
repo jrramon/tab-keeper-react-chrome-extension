@@ -1,25 +1,16 @@
 import { useEffect } from 'react';
 
-import { v4 as uuidv4 } from 'uuid';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import { css } from '@emotion/react';
 
 import { APP_WIDTH } from './utils/constants/common';
-import { observeAuthState } from './config/firebase';
 import MainContainer from './components/MainContainer';
-import { AppDispatch, RootState } from './redux/store';
+import { AppDispatch } from './redux/store';
 import { setPresentStartup } from './redux/slices/undoRedoSlice';
 import { useThemeColors } from './hooks/useThemeColors';
 import { replaceState } from './redux/slices/tabContainerDataStateSlice';
-import {
-  openRateAndReviewModal,
-  removeUserId,
-  setLoggedOut,
-  setSignedIn,
-  setUserId,
-  syncStateWithFirestore,
-} from './redux/slices/globalStateSlice';
+import { openRateAndReviewModal } from './redux/slices/globalStateSlice';
 
 import './App.css';
 import { setExtensionInstalledTime } from './redux/slices/settingsDataStateSlice';
@@ -28,56 +19,6 @@ import { isValidDate, loadFromLocalStorage } from './utils/functions/local';
 function App() {
   const COLORS = useThemeColors();
   const dispatch: AppDispatch = useDispatch();
-  const isSignedIn = useSelector(
-    (state: RootState) => state.globalState.isSignedIn
-  );
-  const userId = useSelector((state: RootState) => state.globalState.userId);
-  const isAutoSync = useSelector(
-    (state: RootState) => state.settingsDataState.isAutoSync
-  );
-  const hasSyncedBefore = useSelector(
-    (state: RootState) => state.globalState.hasSyncedBefore
-  );
-
-  // handle userToken issue from chrome storage sync
-  function getUserTokenFromChromeStorageSync() {
-    // check tokenValue in chrome storage sync
-    // this token is the documentId
-    chrome.storage.sync.get(['tokenValue']).then((result) => {
-      const token = result.tokenValue;
-
-      if (!token) {
-        // No token found in chrome storage sync (new user)
-        chrome.storage.sync
-          .set({ tokenValue: uuidv4() })
-          .then(() => {
-            chrome.storage.sync
-              .get(['tokenValue'])
-              .then((result) => {
-                // New token issued
-                const newToken = result.tokenValue;
-
-                dispatch(setSignedIn());
-                dispatch(setUserId(newToken));
-              })
-              .catch(() => {
-                // unable to load token from chrome storage sync
-                dispatch(setLoggedOut());
-                dispatch(removeUserId());
-              });
-          })
-          .catch(() => {
-            // unable to save new token in chrome storage sync
-            dispatch(setLoggedOut());
-            dispatch(removeUserId());
-          });
-      } else {
-        // Token found in chrome storage sync (existing user)
-        dispatch(setSignedIn());
-        dispatch(setUserId(token));
-      }
-    });
-  }
 
   // ask user to rate and review the extension
   function askUserToRateAndReview() {
@@ -124,31 +65,20 @@ function App() {
   }
 
   useEffect(() => {
-    getUserTokenFromChromeStorageSync();
     askUserToRateAndReview();
-    observeAuthState(dispatch);
-  }, []);
 
-  useEffect(() => {
-    if (isSignedIn && userId && isAutoSync) {
-      dispatch(syncStateWithFirestore());
-    } else {
-      // load from local storage
-      const tabDataFromLocalStorage = loadFromLocalStorage('tabContainerData');
-      if (tabDataFromLocalStorage) {
-        dispatch(replaceState(tabDataFromLocalStorage));
-
-        if (!hasSyncedBefore) {
-          // reset presentState in the undoRedoState
-          dispatch(
-            setPresentStartup({
-              tabContainerDataState: tabDataFromLocalStorage,
-            })
-          );
-        }
-      }
+    // Load from local storage only (no Firebase sync)
+    const tabDataFromLocalStorage = loadFromLocalStorage('tabContainerData');
+    if (tabDataFromLocalStorage) {
+      dispatch(replaceState(tabDataFromLocalStorage));
+      // reset presentState in the undoRedoState
+      dispatch(
+        setPresentStartup({
+          tabContainerDataState: tabDataFromLocalStorage,
+        })
+      );
     }
-  }, [isSignedIn, userId]);
+  }, []);
 
   const containerStyle = css`
     background-color: ${COLORS.PRIMARY_COLOR};

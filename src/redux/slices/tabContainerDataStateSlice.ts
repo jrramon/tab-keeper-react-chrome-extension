@@ -270,6 +270,58 @@ export const openAllTabContainer = createAsyncThunk(
   }
 );
 
+// open all windows under this tab group AND close all other windows (focus mode)
+export const openAllTabContainerAndFocus = createAsyncThunk(
+  'global/openAllTabContainerAndFocus',
+  async (params: openAllTabContainerParams, thunkAPI) => {
+    const state: TabMasterContainer = (thunkAPI.getState() as RootState)
+      .tabContainerDataState;
+    const settingsDataState: SettingsData = (thunkAPI.getState() as RootState)
+      .settingsDataState;
+    const tabGroup = state.tabGroups.find(
+      (group) => group.tabGroupId === params.tabGroupId
+    );
+
+    if (!tabGroup) return;
+
+    // Get all current windows before opening new ones
+    const currentWindows = await chrome.windows.getAll();
+    const currentWindowIds = currentWindows.map((w) => w.id!);
+
+    setupTabActivationListener(settingsDataState.isLazyLoad);
+
+    let isFirstWindow = true;
+
+    // Open all windows from the session
+    tabGroup.windows.forEach((windowGroup) => {
+      createWindowWithRetries(
+        windowGroup.tabs,
+        isFirstWindow,
+        params.goToURLText,
+        settingsDataState.isLazyLoad,
+        windowGroup.windowHeight,
+        windowGroup.windowWidth,
+        windowGroup.windowOffsetTop,
+        windowGroup.windowOffsetLeft,
+        2
+      );
+      isFirstWindow = false;
+    });
+
+    // Wait for windows to be created
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Close all windows that existed before
+    for (const windowId of currentWindowIds) {
+      try {
+        await chrome.windows.remove(windowId);
+      } catch (error) {
+        console.warn('Could not close window:', windowId, error);
+      }
+    }
+  }
+);
+
 // save to tab container and display a toast message
 export const saveToTabContainer = createAsyncThunk(
   'global/saveToTabContainer',

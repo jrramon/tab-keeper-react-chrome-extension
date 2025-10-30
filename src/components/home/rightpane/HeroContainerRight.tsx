@@ -20,6 +20,7 @@ import {
   addCurrWindowToTabGroup,
   deleteTabContainer,
   openAllTabContainer,
+  openAllTabContainerAndFocus,
   updateTabGroupTitle,
   windowGroupData,
 } from '../../../redux/slices/tabContainerDataStateSlice';
@@ -259,6 +260,15 @@ export default function HeroContainerRight() {
             onClick={() => {
               const goToURLText: string = t('Go to URL');
               dispatch(openAllTabContainer({ tabGroupId, goToURLText }));
+            }}
+          />
+          <Icon
+            tooltipText={t('Focus mode - restore and close others')}
+            ariaLabel="focus mode - restore and close other windows"
+            type="filter_center_focus"
+            onClick={() => {
+              const goToURLText: string = t('Go to URL');
+              dispatch(openAllTabContainerAndFocus({ tabGroupId, goToURLText }));
             }}
           />
           <Icon

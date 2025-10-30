@@ -1,8 +1,7 @@
-import { doc, setDoc } from 'firebase/firestore';
-import { db, fetchDataFromFirestore } from '../../config/firebase';
+// Firebase functionality has been removed
+// All data is now stored locally only
+
 import {
-  saveToFirestoreIfDirty,
-  setIsDirty,
   showToast,
 } from '../../redux/slices/globalStateSlice';
 import { TabMasterContainer } from '../../redux/slices/tabContainerDataStateSlice';
@@ -24,39 +23,13 @@ export const displayToast = (
   );
 };
 
-// load data from Firestore
-export async function loadFromFirestore(
-  userId: string,
-  thunkAPI: any
-): Promise<TabMasterContainer | undefined> {
-  try {
-    const tabDataFromCloud: TabMasterContainer =
-      await fetchDataFromFirestore(userId);
-    return tabDataFromCloud;
-  } catch (error: any) {
-    if (error.message === 'Document does not exist for userId: ' + userId) {
-      console.warn('handled error: ' + error.message);
-      thunkAPI.dispatch(setIsDirty());
-      thunkAPI.dispatch(saveToFirestoreIfDirty());
-    } else if (error.message === `Missing or insufficient permissions.`) {
-      console.warn('handled error: ' + error.message);
-      thunkAPI.dispatch(setIsDirty());
-      thunkAPI.dispatch(saveToFirestoreIfDirty());
-    } else {
-      // Handle other types of Firestore errors
-      console.warn('unexpected error: ' + error.message);
-    }
-  }
+// Stub for backward compatibility - throws error if called
+export async function loadFromFirestore(): Promise<TabMasterContainer | undefined> {
+  console.warn('Firebase functionality has been removed - data is local only');
+  return undefined;
 }
 
-// save data to Firestore
-export async function saveToFirestore(
-  userId: string,
-  data: TabMasterContainer
-): Promise<void> {
-  try {
-    await setDoc(doc(db, 'tabGroupData', userId), data);
-  } catch (error: any) {
-    console.warn('Error updating Firestore: ', error.message);
-  }
+// Stub for backward compatibility - does nothing
+export async function saveToFirestore(): Promise<void> {
+  console.warn('Firebase functionality has been removed - data is local only');
 }

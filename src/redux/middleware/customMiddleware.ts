@@ -1,9 +1,8 @@
 import { Middleware } from '@reduxjs/toolkit';
 
 import { set } from '../slices/undoRedoSlice';
-import { debounce } from '../../utils/functions/local';
-import { DEBOUNCE_TIME_WINDOW } from '../../utils/constants/common';
-import { setIsDirty, syncStateWithFirestore } from '../slices/globalStateSlice';
+import { saveToLocalStorage } from '../../utils/functions/local';
+import { setIsDirty } from '../slices/globalStateSlice';
 import {
   ADD_CURR_WINDOW_TO_TABGROUP_ACTION,
   ADD_CURR_TAB_TO_WINDOW_ACTION,
@@ -63,10 +62,6 @@ const isDataStateChangeAction = (
 };
 
 export const customMiddleware: Middleware = (store) => {
-  const debouncedSync = debounce(() => {
-    store.dispatch(syncStateWithFirestore() as any);
-  }, DEBOUNCE_TIME_WINDOW);
-
   return (next) => (action) => {
     if (!isCapturableAction(action.type)) {
       return next(action);
@@ -76,14 +71,13 @@ export const customMiddleware: Middleware = (store) => {
     const result = next(action);
     const nextState = store.getState();
 
-    // After processing the action, check if it was setIsDirty and the flag is true
+    // After processing the action, save to localStorage if dirty
     if (
       action.type === setIsDirty.type &&
-      nextState.globalState.isDirty &&
-      nextState.globalState.isSignedIn &&
-      nextState.settingsDataState.isAutoSync
+      nextState.globalState.isDirty
     ) {
-      debouncedSync();
+      // Save directly to localStorage (Firebase sync removed)
+      saveToLocalStorage('tabContainerData', nextState.tabContainerDataState);
     }
 
     if (isUndoRedoAction(action.type)) {

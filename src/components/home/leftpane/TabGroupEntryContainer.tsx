@@ -13,6 +13,7 @@ import { filterTabGroups } from '../../../utils/functions/local';
 import {
   deleteTabContainer,
   openAllTabContainer,
+  openAllTabContainerAndFocus,
   selectTabContainer,
   tabContainerData,
 } from '../../../redux/slices/tabContainerDataStateSlice';
@@ -89,6 +90,15 @@ export default function TabGroupEntryContainer() {
                       return;
                     }
                     dispatch(selectTabContainer(tabGroupData.tabGroupId));
+                  }}
+                  onFocusClick={() => {
+                    const goToURLText: string = t('Go to URL');
+                    dispatch(
+                      openAllTabContainerAndFocus({
+                        tabGroupId: tabGroupData.tabGroupId,
+                        goToURLText,
+                      })
+                    );
                   }}
                   onOpenAllClick={() => {
                     const goToURLText: string = t('Go to URL');
